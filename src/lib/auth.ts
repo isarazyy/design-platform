@@ -25,19 +25,25 @@ export async function signUp(email: string, password: string, name: string, depa
     password,
     options: {
       data: { name, department },
+      emailRedirectTo: window.location.origin + window.location.pathname,
     },
   });
 
   if (error) throw new Error(error.message);
 
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    throw new Error('该邮箱已注册，请直接登录');
+  }
+
   if (data.user) {
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: data.user.id,
       email,
       name,
       department,
       role: 'user',
     });
+    if (profileError) console.warn('Profile upsert failed:', profileError.message);
   }
 
   return data;
