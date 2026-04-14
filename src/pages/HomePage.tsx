@@ -169,20 +169,6 @@ export default function HomePage() {
               { label: '动画', value: '动画' },
             ]}
           />
-          <Select
-            value={filterStatus || undefined}
-            onChange={v => setFilterStatus(v || '')}
-            placeholder="状态"
-            allowClear
-            style={{ width: 100 }}
-            options={[
-              { label: '待制作', value: '待制作' },
-              { label: '制作中', value: '制作中' },
-              { label: '待审核', value: '待审核' },
-              { label: '已交付', value: '已交付' },
-              { label: '已关闭', value: '已关闭' },
-            ]}
-          />
           <Button
             type="primary"
             icon={<PlusOutlined />}
