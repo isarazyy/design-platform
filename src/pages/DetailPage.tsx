@@ -6,7 +6,7 @@ import {
 import {
   ArrowLeftOutlined, ShareAltOutlined, PrinterOutlined, CopyOutlined, LinkOutlined,
   HomeOutlined, EditOutlined, HistoryOutlined,
-  PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined,
+  PlayCircleOutlined, CheckCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Requirement, RequirementStatus } from '../types';
@@ -26,15 +26,12 @@ const STATUS_STEPS: { value: RequirementStatus; label: string }[] = [
 const STATUS_ACTIONS: Record<RequirementStatus, { label: string; target: RequirementStatus; icon: typeof PlayCircleOutlined; color: string; danger?: boolean }[]> = {
   '待制作': [
     { label: '开始制作', target: '制作中', icon: PlayCircleOutlined, color: '#f59e0b' },
-    { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
   ],
   '制作中': [
     { label: '提交审核', target: '待审核', icon: PlayCircleOutlined, color: '#3b82f6' },
-    { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
   ],
   '待审核': [
     { label: '审核通过，交付', target: '已交付', icon: CheckCircleOutlined, color: '#10b981' },
-    { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
   ],
   '已交付': [],
   '已关闭': [],
@@ -309,13 +306,14 @@ export default function DetailPage() {
             {isCreatorOrAdmin() ? (
               <Select
                 showSearch
+                optionFilterProp="label"
                 value={req.assignee_id || undefined}
                 onChange={v => handleAssigneeChange(v || null)}
-                placeholder="搜索姓名或邮箱"
+                placeholder="输入姓名或邮箱搜索"
                 allowClear
                 style={{ width: '100%' }}
                 filterOption={(input, option) =>
-                  (option?.label as string)?.toLowerCase().includes(input.toLowerCase()) ?? false
+                  String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                 }
                 options={allProfiles
                   .filter(p => p.id !== req.creator_id)
