@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Tag, Spin, message, Select, Descriptions, Divider, Image, Empty, Timeline, Tooltip,
+  Button, Tag, Spin, message, Select, Descriptions, Divider, Image, Empty, Timeline,
 } from 'antd';
 import {
   ArrowLeftOutlined, ShareAltOutlined, PrinterOutlined, CopyOutlined, LinkOutlined,
-  HomeOutlined, EditOutlined, HistoryOutlined, UserOutlined,
+  HomeOutlined, EditOutlined, HistoryOutlined,
   PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -13,7 +13,7 @@ import type { Requirement, RequirementStatus } from '../types';
 import { getRequirementById, updateRequirementStatus, updateCollaborators, updateAssignee } from '../lib/storage';
 import { useAuth } from '../lib/AuthContext';
 import { getEditLogs, addEditLog, type EditLog } from '../lib/editLog';
-import { getProfile, getAllProfiles, type Profile } from '../lib/auth';
+import { getAllProfiles, type Profile } from '../lib/auth';
 
 
 const STATUS_STEPS: RequirementStatus[] = ['待审核', '设计中', '已交付', '已关闭'];
@@ -54,7 +54,6 @@ export default function DetailPage() {
   const [req, setReq] = useState<Requirement | null>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<EditLog[]>([]);
-  const [creatorProfile, setCreatorProfile] = useState<Profile | null>(null);
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
 
   useEffect(() => {
@@ -72,10 +71,6 @@ export default function DetailPage() {
       setReq(data);
       setLogs(editLogs);
       setAllProfiles(profiles);
-      if (data?.creator_id) {
-        const cp = await getProfile(data.creator_id);
-        setCreatorProfile(cp);
-      }
     } catch {
       // silent
     } finally {
@@ -262,17 +257,8 @@ export default function DetailPage() {
         <Descriptions column={2} size="small">
           <Descriptions.Item label="提需人">{req.requester}</Descriptions.Item>
           <Descriptions.Item label="部门">{req.department || '-'}</Descriptions.Item>
-          <Descriptions.Item label="创建时间">{dayjs(req.created_at).format('YYYY-MM-DD HH:mm')}</Descriptions.Item>
-          <Descriptions.Item label="更新时间">{dayjs(req.updated_at).format('YYYY-MM-DD HH:mm')}</Descriptions.Item>
           {req.start_date && <Descriptions.Item label="开始日期">{req.start_date}</Descriptions.Item>}
           {req.end_date && <Descriptions.Item label="截止日期">{req.end_date}</Descriptions.Item>}
-          {creatorProfile && (
-            <Descriptions.Item label="创建账号">
-              <Tooltip title={creatorProfile.email}>
-                <span><UserOutlined style={{ marginRight: 4 }} />{creatorProfile.name}</span>
-              </Tooltip>
-            </Descriptions.Item>
-          )}
         </Descriptions>
       </div>
 
