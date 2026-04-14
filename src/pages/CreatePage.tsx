@@ -262,37 +262,6 @@ export default function CreatePage() {
         </div>
       </div>
 
-      {/* 需求背景 & 目标 */}
-      <div className="section-card">
-        <div className="section-title">需求背景 & 目标</div>
-        <div style={{ display: 'grid', gap: 16 }}>
-          <div>
-            <label style={{ fontWeight: 500 }}>需求背景</label>
-            <TextArea
-              placeholder="描述一下这个需求的背景，为什么要做这个..."
-              value={form.background}
-              onChange={e => update('background', e.target.value)}
-              autoSize={{ minRows: 3, maxRows: 8 }}
-              maxLength={2000}
-              showCount
-              style={{ marginTop: 6 }}
-            />
-          </div>
-          <div>
-            <label style={{ fontWeight: 500 }}>需求目标</label>
-            <TextArea
-              placeholder="希望通过这次设计达成什么目标..."
-              value={form.objective}
-              onChange={e => update('objective', e.target.value)}
-              autoSize={{ minRows: 3, maxRows: 8 }}
-              maxLength={2000}
-              showCount
-              style={{ marginTop: 6 }}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* 期望交付日期 & 优先级 */}
       <div className="section-card">
         <div className="section-title">期望交付日期 & 优先级</div>
@@ -330,6 +299,37 @@ export default function CreatePage() {
                 {p.value}
               </Button>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 需求背景 & 目标 */}
+      <div className="section-card">
+        <div className="section-title">需求背景 & 目标</div>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <label style={{ fontWeight: 500 }}>需求背景</label>
+            <TextArea
+              placeholder="描述一下这个需求的背景，为什么要做这个..."
+              value={form.background}
+              onChange={e => update('background', e.target.value)}
+              autoSize={{ minRows: 3, maxRows: 8 }}
+              maxLength={2000}
+              showCount
+              style={{ marginTop: 6 }}
+            />
+          </div>
+          <div>
+            <label style={{ fontWeight: 500 }}>需求目标</label>
+            <TextArea
+              placeholder="希望通过这次设计达成什么目标..."
+              value={form.objective}
+              onChange={e => update('objective', e.target.value)}
+              autoSize={{ minRows: 3, maxRows: 8 }}
+              maxLength={2000}
+              showCount
+              style={{ marginTop: 6 }}
+            />
           </div>
         </div>
       </div>
