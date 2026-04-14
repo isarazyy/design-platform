@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
-import type { Material, ReferenceLink, RequirementFormData, RequirementType, Priority } from '../types';
+import type { Material, ReferenceLink, RequirementFormData, RequirementType, Priority, VersionNode } from '../types';
 import { createRequirement, saveDraft, loadDraft, clearDraft, uploadImage } from '../lib/storage';
 import { useAuth } from '../lib/AuthContext';
 import { addEditLog } from '../lib/editLog';
@@ -44,7 +44,7 @@ const emptyForm: RequirementFormData = {
   start_date: null,
   end_date: null,
   priority: null,
-  versions: [],
+  versions: [] as VersionNode[],
   materials: [],
   copywriting_mode: 'template',
   main_title: '',
@@ -297,34 +297,92 @@ export default function CreatePage() {
             />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div>
-            <label style={{ fontWeight: 500 }}>优先级</label>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              {PRIORITIES.map(p => (
-                <Button
-                  key={p.value}
-                  type={form.priority === p.value ? 'primary' : 'default'}
-                  className="priority-btn"
-                  style={form.priority === p.value ? { background: p.color, borderColor: p.color } : { color: p.color, borderColor: p.color }}
-                  onClick={() => update('priority', form.priority === p.value ? null : p.value)}
-                >
-                  {p.value}
-                </Button>
-              ))}
+        <div>
+          <label style={{ fontWeight: 500 }}>优先级</label>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {PRIORITIES.map(p => (
+              <Button
+                key={p.value}
+                type={form.priority === p.value ? 'primary' : 'default'}
+                className="priority-btn"
+                style={form.priority === p.value ? { background: p.color, borderColor: p.color } : { color: p.color, borderColor: p.color }}
+                onClick={() => update('priority', form.priority === p.value ? null : p.value)}
+              >
+                {p.value}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <label style={{ fontWeight: 500 }}>版本提交节点</label>
+          <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 4, marginBottom: 10 }}>每个版本设定一个提交日期，方便跟踪进度</div>
+          {(form.versions || []).map((ver, idx) => (
+            <div key={ver.id} style={{
+              display: 'grid',
+              gridTemplateColumns: '80px 160px 1fr auto',
+              gap: 10,
+              alignItems: 'center',
+              marginBottom: 8,
+            }}>
+              <Input
+                value={ver.name}
+                onChange={e => {
+                  const vs = [...form.versions];
+                  vs[idx] = { ...vs[idx], name: e.target.value };
+                  update('versions', vs);
+                }}
+                placeholder="版本名"
+                size="small"
+              />
+              <DatePicker
+                value={ver.date ? dayjs(ver.date) : null}
+                onChange={d => {
+                  const vs = [...form.versions];
+                  vs[idx] = { ...vs[idx], date: d ? d.format('YYYY-MM-DD') : null };
+                  update('versions', vs);
+                }}
+                disabledDate={d => {
+                  if (form.start_date && d.isBefore(dayjs(form.start_date), 'day')) return true;
+                  if (form.end_date && d.isAfter(dayjs(form.end_date), 'day')) return true;
+                  return false;
+                }}
+                placeholder="提交日期"
+                size="small"
+                style={{ width: '100%' }}
+              />
+              <Input
+                value={ver.note}
+                onChange={e => {
+                  const vs = [...form.versions];
+                  vs[idx] = { ...vs[idx], note: e.target.value };
+                  update('versions', vs);
+                }}
+                placeholder="备注说明（选填）"
+                size="small"
+              />
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                size="small"
+                onClick={() => update('versions', form.versions.filter((_, i) => i !== idx))}
+              />
             </div>
-          </div>
-          <div>
-            <label style={{ fontWeight: 500 }}>版本号</label>
-            <Select
-              mode="tags"
-              value={form.versions || []}
-              onChange={v => update('versions', v)}
-              placeholder="选择或输入版本号"
-              style={{ width: '100%', marginTop: 8 }}
-              options={['V1', 'V2', 'V3', 'V4', 'V5'].map(v => ({ label: v, value: v }))}
-            />
-          </div>
+          ))}
+          <Button
+            type="dashed"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              const nextNum = (form.versions || []).length + 1;
+              const newVer: VersionNode = { id: 'v_' + Date.now().toString(36), name: `V${nextNum}`, date: null, note: '' };
+              update('versions', [...(form.versions || []), newVer]);
+            }}
+            style={{ marginTop: 4 }}
+          >
+            添加版本
+          </Button>
         </div>
       </div>
 

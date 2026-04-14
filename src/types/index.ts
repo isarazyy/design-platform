@@ -15,6 +15,13 @@ export interface Material {
   free_text?: string;
 }
 
+export interface VersionNode {
+  id: string;
+  name: string;
+  date: string | null;
+  note: string;
+}
+
 export interface ReferenceLink {
   id: string;
   url: string;
@@ -32,7 +39,7 @@ export interface Requirement {
   start_date: string | null;
   end_date: string | null;
   priority: Priority | null;
-  versions: string[];
+  versions: VersionNode[];
   materials: Material[];
   copywriting_mode: 'template' | 'free';
   main_title: string;
