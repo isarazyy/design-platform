@@ -101,6 +101,26 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data as Profile;
 }
 
+export async function ensureProfile(user: User): Promise<Profile | null> {
+  if (!supabase) return null;
+  const existing = await getProfile(user.id);
+  if (existing) return existing;
+
+  const meta = user.user_metadata || {};
+  const { error } = await supabase.from('profiles').upsert({
+    id: user.id,
+    email: user.email || '',
+    name: meta.name || '',
+    department: meta.department || '',
+    role: 'user',
+  });
+  if (error) {
+    console.warn('ensureProfile failed:', error.message);
+    return null;
+  }
+  return getProfile(user.id);
+}
+
 export async function updateProfile(userId: string, updates: Partial<Pick<Profile, 'name' | 'department'>>) {
   if (!supabase) return;
   const { error } = await supabase

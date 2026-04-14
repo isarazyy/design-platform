@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { Profile } from './auth';
-import { getCurrentUser, getProfile, onAuthStateChange } from './auth';
+import { getCurrentUser, getProfile, ensureProfile, onAuthStateChange } from './auth';
 
 interface AuthState {
   user: User | null;
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (u: User | null) => {
     if (u) {
-      const p = await getProfile(u.id);
+      const p = await ensureProfile(u);
       setProfile(p);
     } else {
       setProfile(null);
