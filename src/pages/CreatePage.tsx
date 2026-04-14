@@ -24,7 +24,7 @@ const PRIORITIES: { value: Priority; color: string }[] = [
 ];
 
 const MATERIAL_TYPES = ['长图', 'H5', '海报', 'Banner', '插画', 'icon', '视频', '动画', '包装', '礼品', '绘本', '其他'];
-const SIZE_OPTIONS = ['1080x1920', '750x1334', '1920x1080', '800x800', '640x960', 'A4', 'A3', '自定义'];
+const SIZE_OPTIONS = ['1080x1920', '750x1334', '1920x1080', '800x800', '640x960', 'A4', 'A3'];
 
 function generateMaterialId() {
   return 'm_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
@@ -378,7 +378,7 @@ export default function CreatePage() {
                   value={mat.size || undefined}
                   onChange={v => updateMaterial(mat.id, 'size', v || '')}
                   options={SIZE_OPTIONS.map(s => ({ label: s, value: s }))}
-                  placeholder="尺寸"
+                  placeholder="选择或输入尺寸"
                   style={{ width: '100%' }}
                   allowClear
                   mode="tags"
