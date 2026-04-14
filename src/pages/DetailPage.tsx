@@ -34,7 +34,6 @@ const STATUS_ACTIONS: Record<RequirementStatus, { label: string; target: Require
   ],
   '待审核': [
     { label: '审核通过，交付', target: '已交付', icon: CheckCircleOutlined, color: '#10b981' },
-    { label: '打回修改', target: '制作中', icon: PlayCircleOutlined, color: '#f59e0b' },
     { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
   ],
   '已交付': [],
