@@ -17,25 +17,27 @@ import { getAllProfiles, type Profile } from '../lib/auth';
 
 
 const STATUS_STEPS: { value: RequirementStatus; label: string }[] = [
+  { value: '待制作', label: '待制作' },
+  { value: '制作中', label: '制作中' },
   { value: '待审核', label: '待审核' },
-  { value: '设计中', label: '制作中' },
   { value: '已交付', label: '已交付' },
-  { value: '已关闭', label: '已关闭' },
 ];
 
 const STATUS_ACTIONS: Record<RequirementStatus, { label: string; target: RequirementStatus; icon: typeof PlayCircleOutlined; color: string; danger?: boolean }[]> = {
-  '草稿': [{ label: '提交审核', target: '待审核', icon: PlayCircleOutlined, color: '#3b82f6' }],
+  '待制作': [
+    { label: '开始制作', target: '制作中', icon: PlayCircleOutlined, color: '#f59e0b' },
+    { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
+  ],
+  '制作中': [
+    { label: '提交审核', target: '待审核', icon: PlayCircleOutlined, color: '#3b82f6' },
+    { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
+  ],
   '待审核': [
-    { label: '开始制作', target: '设计中', icon: PlayCircleOutlined, color: '#f59e0b' },
-    { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
+    { label: '审核通过，交付', target: '已交付', icon: CheckCircleOutlined, color: '#10b981' },
+    { label: '打回修改', target: '制作中', icon: PlayCircleOutlined, color: '#f59e0b' },
+    { label: '不做了', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
   ],
-  '设计中': [
-    { label: '标记已交付', target: '已交付', icon: CheckCircleOutlined, color: '#10b981' },
-    { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
-  ],
-  '已交付': [
-    { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
-  ],
+  '已交付': [],
   '已关闭': [],
 };
 

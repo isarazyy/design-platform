@@ -1,6 +1,6 @@
 export type RequirementType = '视觉设计' | '美术' | '动画';
 export type Priority = '紧急' | '高' | '中' | '低';
-export type RequirementStatus = '草稿' | '待审核' | '设计中' | '已交付' | '已关闭';
+export type RequirementStatus = '待制作' | '制作中' | '待审核' | '已交付' | '已关闭';
 
 export interface Material {
   id: string;

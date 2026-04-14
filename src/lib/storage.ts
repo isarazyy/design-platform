@@ -22,7 +22,7 @@ export async function createRequirement(formData: RequirementFormData, creatorId
   const req: Requirement = {
     ...formData,
     id: generateId(),
-    status: '待审核',
+    status: '待制作',
     creator_id: creatorId || null,
     collaborator_ids: [],
     assignee_id: null,

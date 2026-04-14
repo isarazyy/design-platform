@@ -14,9 +14,9 @@ import { useAuth } from '../lib/AuthContext';
 const PAGE_SIZE = 20;
 
 const STATUS_COLORS: Record<RequirementStatus, string> = {
-  '草稿': 'default',
+  '待制作': 'default',
+  '制作中': 'warning',
   '待审核': 'processing',
-  '设计中': 'warning',
   '已交付': 'success',
   '已关闭': 'default',
 };
@@ -99,8 +99,8 @@ export default function HomePage() {
 
   const stats = [
     { label: '全部需求', value: requirements.length, status: '' },
-    { label: '待审核', value: requirements.filter(r => r.status === '待审核').length, status: '待审核' },
-    { label: '设计中', value: requirements.filter(r => r.status === '设计中').length, status: '设计中' },
+    { label: '待制作', value: requirements.filter(r => r.status === '待制作').length, status: '待制作' },
+    { label: '制作中', value: requirements.filter(r => r.status === '制作中').length, status: '制作中' },
     { label: '已交付', value: requirements.filter(r => r.status === '已交付').length, status: '已交付' },
   ];
 
@@ -176,8 +176,9 @@ export default function HomePage() {
             allowClear
             style={{ width: 100 }}
             options={[
+              { label: '待制作', value: '待制作' },
+              { label: '制作中', value: '制作中' },
               { label: '待审核', value: '待审核' },
-              { label: '设计中', value: '设计中' },
               { label: '已交付', value: '已交付' },
               { label: '已关闭', value: '已关闭' },
             ]}
