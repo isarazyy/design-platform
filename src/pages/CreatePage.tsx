@@ -320,21 +320,12 @@ export default function CreatePage() {
           {(form.versions || []).map((ver, idx) => (
             <div key={ver.id} style={{
               display: 'grid',
-              gridTemplateColumns: '80px 160px 1fr auto',
+              gridTemplateColumns: '50px 160px 1fr auto',
               gap: 10,
               alignItems: 'center',
               marginBottom: 8,
             }}>
-              <Input
-                value={ver.name}
-                onChange={e => {
-                  const vs = [...form.versions];
-                  vs[idx] = { ...vs[idx], name: e.target.value };
-                  update('versions', vs);
-                }}
-                placeholder="版本名"
-                size="small"
-              />
+              <span style={{ fontWeight: 600, color: '#4f46e5', fontSize: 14 }}>V{idx + 1}</span>
               <DatePicker
                 value={ver.date ? dayjs(ver.date) : null}
                 onChange={d => {
@@ -375,8 +366,7 @@ export default function CreatePage() {
             size="small"
             icon={<PlusOutlined />}
             onClick={() => {
-              const nextNum = (form.versions || []).length + 1;
-              const newVer: VersionNode = { id: 'v_' + Date.now().toString(36), name: `V${nextNum}`, date: null, note: '' };
+              const newVer: VersionNode = { id: 'v_' + Date.now().toString(36), name: '', date: null, note: '' };
               update('versions', [...(form.versions || []), newVer]);
             }}
             style={{ marginTop: 4 }}

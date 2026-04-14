@@ -206,8 +206,8 @@ export default function DetailPage() {
             {req.priority && (
               <Tag color={PRIORITY_COLORS[req.priority]}>{req.priority}</Tag>
             )}
-            {req.versions && req.versions.length > 0 && req.versions.map((v: any) => (
-              <Tag key={typeof v === 'string' ? v : v.id} color="blue">{typeof v === 'string' ? v : v.name}</Tag>
+            {req.versions && req.versions.length > 0 && req.versions.map((_: any, i: number) => (
+              <Tag key={i} color="blue">V{i + 1}</Tag>
             ))}
           </div>
         </div>
@@ -284,12 +284,12 @@ export default function DetailPage() {
             <div style={{ marginTop: 16 }}>
               <div style={{ fontWeight: 500, fontSize: 13, color: '#595959', marginBottom: 8 }}>版本提交节点</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {vers.map((v: any) => (
+                {vers.map((v: any, i: number) => (
                   <div key={v.id} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '8px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0',
                   }}>
-                    <Tag color="blue" style={{ margin: 0 }}>{v.name}</Tag>
+                    <Tag color="blue" style={{ margin: 0 }}>V{i + 1}</Tag>
                     <span style={{ color: '#334155', fontSize: 13 }}>{v.date || '未设定日期'}</span>
                     {v.note && <span style={{ color: '#94a3b8', fontSize: 12 }}>— {v.note}</span>}
                   </div>
