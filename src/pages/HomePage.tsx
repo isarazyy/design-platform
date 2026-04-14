@@ -98,10 +98,10 @@ export default function HomePage() {
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus, scope]);
 
   const stats = [
-    { label: '全部需求', value: requirements.length },
-    { label: '待审核', value: requirements.filter(r => r.status === '待审核').length },
-    { label: '设计中', value: requirements.filter(r => r.status === '设计中').length },
-    { label: '已交付', value: requirements.filter(r => r.status === '已交付').length },
+    { label: '全部需求', value: requirements.length, status: '' },
+    { label: '待审核', value: requirements.filter(r => r.status === '待审核').length, status: '待审核' },
+    { label: '设计中', value: requirements.filter(r => r.status === '设计中').length, status: '设计中' },
+    { label: '已交付', value: requirements.filter(r => r.status === '已交付').length, status: '已交付' },
   ];
 
   return (
@@ -109,7 +109,18 @@ export default function HomePage() {
       {/* 统计卡片 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {stats.map((s, i) => (
-          <div key={s.label} className="stat-card">
+          <div
+            key={s.label}
+            className="stat-card"
+            onClick={() => setFilterStatus(filterStatus === s.status ? '' : s.status)}
+            style={{
+              cursor: 'pointer',
+              outline: filterStatus === s.status ? `2px solid ${STAT_ICONS[i].color}` : 'none',
+              outlineOffset: -2,
+              transition: 'outline 0.2s, transform 0.15s',
+              transform: filterStatus === s.status ? 'scale(1.02)' : undefined,
+            }}
+          >
             <div style={{ color: STAT_ICONS[i].color, fontSize: 20, marginBottom: 8 }}>{STAT_ICONS[i].icon}</div>
             <div className="stat-number" style={i > 0 ? {
               background: `linear-gradient(135deg, ${STAT_ICONS[i].color}, ${STAT_ICONS[i].color}cc)`,
