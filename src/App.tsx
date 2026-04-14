@@ -10,6 +10,7 @@ import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import DraftsPage from './pages/DraftsPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -33,6 +34,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />

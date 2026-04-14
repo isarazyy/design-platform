@@ -6,7 +6,7 @@ export interface Profile {
   email: string;
   name: string;
   department: string;
-  role: 'user' | 'designer' | 'admin';
+  role: 'user' | 'admin';
   created_at: string;
 }
 
@@ -53,8 +53,29 @@ export async function signIn(email: string, password: string) {
   if (!isSupabaseConfigured() || !supabase) throw new Error('系统未配置');
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message);
+  if (error) {
+    if (error.message === 'Invalid login credentials') throw new Error('邮箱或密码错误');
+    if (error.message === 'Email not confirmed') throw new Error('邮箱未验证，请先查收验证邮件并点击确认');
+    throw new Error(error.message);
+  }
   return data;
+}
+
+export async function resetPassword(email: string) {
+  if (!isSupabaseConfigured() || !supabase) throw new Error('系统未配置');
+  if (!isAllowedEmail(email)) throw new Error(`仅支持 @${ALLOWED_DOMAIN} 公司邮箱`);
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname + '#/reset-password',
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePassword(newPassword: string) {
+  if (!isSupabaseConfigured() || !supabase) throw new Error('系统未配置');
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message);
 }
 
 export async function signOut() {

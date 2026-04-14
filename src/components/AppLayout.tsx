@@ -37,7 +37,7 @@ export default function AppLayout() {
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{profile?.email}</div>
           {profile?.department && <div style={{ fontSize: 12, color: '#94a3b8' }}>{profile.department}</div>}
           <div style={{ fontSize: 11, color: '#c7d2fe', marginTop: 2 }}>
-            {profile?.role === 'admin' ? '管理员' : profile?.role === 'designer' ? '设计师' : '普通用户'}
+            {profile?.role === 'admin' ? '管理员' : '普通用户'}
           </div>
         </div>
       ),

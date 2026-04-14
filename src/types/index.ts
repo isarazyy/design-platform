@@ -32,6 +32,7 @@ export interface Requirement {
   start_date: string | null;
   end_date: string | null;
   priority: Priority | null;
+  versions: string[];
   materials: Material[];
   copywriting_mode: 'template' | 'free';
   main_title: string;

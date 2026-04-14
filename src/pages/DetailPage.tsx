@@ -122,14 +122,19 @@ export default function DetailPage() {
     }
   };
 
+  const resolveDisplay = (val: string) => {
+    const p = allProfiles.find(pr => pr.id === val);
+    return p ? p.name : val;
+  };
+
   const handleAssigneeChange = async (assigneeId: string | null) => {
     if (!req || !id) return;
     try {
       await updateAssignee(id, assigneeId || null);
       setReq({ ...req, assignee_id: assigneeId || null });
       if (user) {
-        const assigneeName = allProfiles.find(p => p.id === assigneeId)?.name || '';
-        await addEditLog(id, user.id, profile?.name || '', '指派设计师', assigneeName ? `指派给 ${assigneeName}` : '取消指派');
+        const assigneeName = assigneeId ? resolveDisplay(assigneeId) : '';
+        await addEditLog(id, user.id, profile?.name || '', '指派负责人', assigneeName ? `指派给 ${assigneeName}` : '取消指派');
         setLogs(await getEditLogs(id));
       }
       message.success('指派已更新');
@@ -201,6 +206,9 @@ export default function DetailPage() {
             {req.priority && (
               <Tag color={PRIORITY_COLORS[req.priority]}>{req.priority}</Tag>
             )}
+            {req.versions && req.versions.length > 0 && req.versions.map(v => (
+              <Tag key={v} color="blue">{v}</Tag>
+            ))}
           </div>
         </div>
 
@@ -269,28 +277,30 @@ export default function DetailPage() {
         </Descriptions>
       </div>
 
-      {/* 协作者 & 指派设计师 */}
+      {/* 对接方 */}
       <div className="section-card no-print">
-        <div className="section-title">制作人与协作</div>
+        <div className="section-title">对接方</div>
         <div style={{ display: 'grid', gap: 16 }}>
           <div>
-            <div style={{ fontWeight: 500, marginBottom: 6, color: '#595959' }}>制作人</div>
+            <div style={{ fontWeight: 500, marginBottom: 6, color: '#595959' }}>负责人</div>
             {isCreatorOrAdmin() ? (
               <Select
+                showSearch
                 value={req.assignee_id || undefined}
                 onChange={v => handleAssigneeChange(v || null)}
-                placeholder="选择制作人"
+                placeholder="搜索姓名或邮箱"
                 allowClear
                 style={{ width: '100%' }}
+                filterOption={(input, option) =>
+                  (option?.label as string)?.toLowerCase().includes(input.toLowerCase()) ?? false
+                }
                 options={allProfiles
                   .filter(p => p.id !== req.creator_id)
                   .map(p => ({ label: `${p.name}（${p.email}）`, value: p.id }))}
               />
             ) : (
               <span style={{ color: '#64748b' }}>
-                {req.assignee_id
-                  ? allProfiles.find(p => p.id === req.assignee_id)?.name || '已指定'
-                  : '未指定'}
+                {req.assignee_id ? resolveDisplay(req.assignee_id) : '未指定'}
               </span>
             )}
           </div>
@@ -298,10 +308,10 @@ export default function DetailPage() {
             <div style={{ fontWeight: 500, marginBottom: 6, color: '#595959' }}>协作人</div>
             {isCreatorOrAdmin() ? (
               <Select
-                mode="multiple"
+                mode="tags"
                 value={req.collaborator_ids || []}
                 onChange={handleCollaboratorsChange}
-                placeholder="选择可以编辑此需求的同事"
+                placeholder="选择或输入协作人"
                 style={{ width: '100%' }}
                 options={allProfiles
                   .filter(p => p.id !== req.creator_id)
@@ -310,7 +320,7 @@ export default function DetailPage() {
             ) : (
               <span style={{ color: '#64748b' }}>
                 {req.collaborator_ids && req.collaborator_ids.length > 0
-                  ? req.collaborator_ids.map(cid => allProfiles.find(p => p.id === cid)?.name || cid).join('、')
+                  ? req.collaborator_ids.map(cid => resolveDisplay(cid)).join('、')
                   : '无'}
               </span>
             )}

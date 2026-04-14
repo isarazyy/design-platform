@@ -77,6 +77,7 @@ export default function EditPage() {
           start_date: req.start_date,
           end_date: req.end_date,
           priority: req.priority,
+          versions: req.versions || [],
           materials: req.materials || [],
           copywriting_mode: req.copywriting_mode,
           main_title: req.main_title,
@@ -259,11 +260,14 @@ export default function EditPage() {
             <div>
               <label style={{ fontWeight: 500 }}>所属部门/项目</label>
               <Input
-                placeholder="例如：视频组"
+                placeholder="粘贴企业微信中的部门路径"
                 value={form.department}
                 onChange={e => update('department', e.target.value)}
                 style={{ marginTop: 6 }}
               />
+              <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>
+                企业微信 → 点击头像 → 复制「部门」字段
+              </div>
             </div>
           </div>
           <div id="field-type">
@@ -313,20 +317,33 @@ export default function EditPage() {
             />
           </div>
         </div>
-        <div>
-          <label style={{ fontWeight: 500 }}>优先级</label>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            {PRIORITIES.map(p => (
-              <Button
-                key={p.value}
-                type={form.priority === p.value ? 'primary' : 'default'}
-                className="priority-btn"
-                style={form.priority === p.value ? { background: p.color, borderColor: p.color } : { color: p.color, borderColor: p.color }}
-                onClick={() => update('priority', form.priority === p.value ? null : p.value)}
-              >
-                {p.value}
-              </Button>
-            ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div>
+            <label style={{ fontWeight: 500 }}>优先级</label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {PRIORITIES.map(p => (
+                <Button
+                  key={p.value}
+                  type={form.priority === p.value ? 'primary' : 'default'}
+                  className="priority-btn"
+                  style={form.priority === p.value ? { background: p.color, borderColor: p.color } : { color: p.color, borderColor: p.color }}
+                  onClick={() => update('priority', form.priority === p.value ? null : p.value)}
+                >
+                  {p.value}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={{ fontWeight: 500 }}>版本号</label>
+            <Select
+              mode="tags"
+              value={form.versions || []}
+              onChange={v => update('versions', v)}
+              placeholder="选择或输入版本号"
+              style={{ width: '100%', marginTop: 8 }}
+              options={['V1', 'V2', 'V3', 'V4', 'V5'].map(v => ({ label: v, value: v }))}
+            />
           </div>
         </div>
       </div>
@@ -365,7 +382,7 @@ export default function EditPage() {
       {/* 需求物料 & 文案 */}
       <div className="section-card">
         <div className="section-title">需求物料 & 文案</div>
-        <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>每个物料独立填写文案，方便设计师一一对应</div>
+        <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>每个物料独立填写文案，方便制作人一一对应</div>
 
         {form.materials.map((mat, idx) => (
           <div key={mat.id} style={{

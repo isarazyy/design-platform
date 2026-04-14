@@ -9,19 +9,16 @@ import { useAuth } from '../lib/AuthContext';
 
 const ROLE_OPTIONS = [
   { label: '普通用户', value: 'user' },
-  { label: '设计师', value: 'designer' },
   { label: '管理员', value: 'admin' },
 ];
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'purple',
-  designer: 'blue',
   user: 'default',
 };
 
 const ROLE_LABELS: Record<string, string> = {
   admin: '管理员',
-  designer: '设计师',
   user: '普通用户',
 };
 
