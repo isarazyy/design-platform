@@ -94,8 +94,9 @@ export default function DetailPage() {
 
   const canChangeStatus = () => {
     if (!user || !req) return false;
-    if (profile?.role === 'admin' || profile?.role === 'designer') return true;
+    if (profile?.role === 'admin') return true;
     if (req.creator_id === user.id) return true;
+    if (req.assignee_id === user.id) return true;
     return false;
   };
 
