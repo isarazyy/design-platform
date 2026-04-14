@@ -110,7 +110,7 @@ export default function EditPage() {
     if (!form) return;
     update('materials', [
       ...form.materials,
-      { id: generateMaterialId(), type: '', quantity: 1, size: '', notes: '' },
+      { id: generateMaterialId(), type: '', quantity: 1, size: '', notes: '', copy_mode: 'template' as const, main_title: '', sub_title: '', body_text: '', free_text: '' },
     ]);
   };
 
@@ -282,37 +282,6 @@ export default function EditPage() {
         </div>
       </div>
 
-      {/* 需求背景 & 目标 */}
-      <div className="section-card">
-        <div className="section-title">需求背景 & 目标</div>
-        <div style={{ display: 'grid', gap: 16 }}>
-          <div>
-            <label style={{ fontWeight: 500 }}>需求背景</label>
-            <TextArea
-              placeholder="描述一下这个需求的背景，为什么要做这个..."
-              value={form.background}
-              onChange={e => update('background', e.target.value)}
-              autoSize={{ minRows: 3, maxRows: 8 }}
-              maxLength={2000}
-              showCount
-              style={{ marginTop: 6 }}
-            />
-          </div>
-          <div>
-            <label style={{ fontWeight: 500 }}>需求目标</label>
-            <TextArea
-              placeholder="希望通过这次设计达成什么目标..."
-              value={form.objective}
-              onChange={e => update('objective', e.target.value)}
-              autoSize={{ minRows: 3, maxRows: 8 }}
-              maxLength={2000}
-              showCount
-              style={{ marginTop: 6 }}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* 期望交付日期 & 优先级 */}
       <div className="section-card">
         <div className="section-title">期望交付日期 & 优先级</div>
@@ -354,78 +323,144 @@ export default function EditPage() {
         </div>
       </div>
 
-      {/* 需求物料 */}
+      {/* 需求背景 & 目标 */}
       <div className="section-card">
-        <div className="section-title">需求物料</div>
-        {form.materials.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 70px auto', gap: '8px 12px', alignItems: 'center', marginBottom: 12, padding: '0 4px' }}>
-            <span style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 500 }}>物料类型</span>
-            <span style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 500 }}>尺寸/规格</span>
-            <span style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 500 }}>数量</span>
-            <span />
+        <div className="section-title">需求背景 & 目标</div>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <label style={{ fontWeight: 500 }}>需求背景</label>
+            <TextArea
+              placeholder="描述一下这个需求的背景，为什么要做这个..."
+              value={form.background}
+              onChange={e => update('background', e.target.value)}
+              autoSize={{ minRows: 3, maxRows: 8 }}
+              maxLength={2000}
+              showCount
+              style={{ marginTop: 6 }}
+            />
           </div>
-        )}
-        {form.materials.map((mat) => (
-          <div key={mat.id} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 70px auto', gap: '8px 12px', alignItems: 'start', marginBottom: 8 }}>
-            <Select
-              value={Array.isArray(mat.type) ? (mat.type[0] || undefined) : (mat.type || undefined)}
-              onChange={v => updateMaterial(mat.id, 'type', v)}
-              options={MATERIAL_TYPES.map(t => ({ label: t, value: t }))}
-              placeholder="选择类型"
-              style={{ width: '100%' }}
-              allowClear
+          <div>
+            <label style={{ fontWeight: 500 }}>需求目标</label>
+            <TextArea
+              placeholder="希望通过这次设计达成什么目标..."
+              value={form.objective}
+              onChange={e => update('objective', e.target.value)}
+              autoSize={{ minRows: 3, maxRows: 8 }}
+              maxLength={2000}
+              showCount
+              style={{ marginTop: 6 }}
             />
-            <Select
-              value={mat.size || undefined}
-              onChange={v => updateMaterial(mat.id, 'size', v || '')}
-              options={SIZE_OPTIONS.map(s => ({ label: s, value: s }))}
-              placeholder="尺寸"
-              style={{ width: '100%' }}
-              allowClear
-              mode="tags"
-              maxCount={1}
-            />
-            <InputNumber
-              value={mat.quantity}
-              onChange={v => updateMaterial(mat.id, 'quantity', v || 1)}
-              min={1}
-              style={{ width: '100%' }}
-            />
-            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeMaterial(mat.id)} style={{ marginTop: 2 }} />
+          </div>
+        </div>
+      </div>
+
+      {/* 需求物料 & 文案 */}
+      <div className="section-card">
+        <div className="section-title">需求物料 & 文案</div>
+        <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>每个物料独立填写文案，方便设计师一一对应</div>
+
+        {form.materials.map((mat, idx) => (
+          <div key={mat.id} style={{
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginBottom: 12,
+            background: '#fafbfc',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontWeight: 600, color: '#334155', fontSize: 14 }}>物料 {idx + 1}</span>
+              <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeMaterial(mat.id)} size="small" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px', gap: 12, marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>物料类型</div>
+                <Select
+                  value={Array.isArray(mat.type) ? (mat.type[0] || undefined) : (mat.type || undefined)}
+                  onChange={v => updateMaterial(mat.id, 'type', v)}
+                  options={MATERIAL_TYPES.map(t => ({ label: t, value: t }))}
+                  placeholder="选择类型"
+                  style={{ width: '100%' }}
+                  allowClear
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>尺寸/规格</div>
+                <Select
+                  value={mat.size || undefined}
+                  onChange={v => updateMaterial(mat.id, 'size', v || '')}
+                  options={SIZE_OPTIONS.map(s => ({ label: s, value: s }))}
+                  placeholder="尺寸"
+                  style={{ width: '100%' }}
+                  allowClear
+                  mode="tags"
+                  maxCount={1}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>数量</div>
+                <InputNumber
+                  value={mat.quantity}
+                  onChange={v => updateMaterial(mat.id, 'quantity', v || 1)}
+                  min={1}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+
+            <Divider style={{ margin: '12px 0' }} dashed />
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 500 }}>文案内容</span>
+                <Radio.Group
+                  value={mat.copy_mode || 'template'}
+                  onChange={e => updateMaterial(mat.id, 'copy_mode', e.target.value)}
+                  size="small"
+                >
+                  <Radio.Button value="template">模版</Radio.Button>
+                  <Radio.Button value="free">自由文本</Radio.Button>
+                </Radio.Group>
+              </div>
+
+              {(mat.copy_mode || 'template') === 'template' ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <Input
+                    value={mat.main_title || ''}
+                    onChange={e => updateMaterial(mat.id, 'main_title', e.target.value)}
+                    placeholder="主标题"
+                    size="small"
+                  />
+                  <Input
+                    value={mat.sub_title || ''}
+                    onChange={e => updateMaterial(mat.id, 'sub_title', e.target.value)}
+                    placeholder="副标题（选填）"
+                    size="small"
+                  />
+                  <TextArea
+                    value={mat.body_text || ''}
+                    onChange={e => updateMaterial(mat.id, 'body_text', e.target.value)}
+                    placeholder="正文内容（选填）"
+                    autoSize={{ minRows: 2, maxRows: 6 }}
+                    size="small"
+                  />
+                </div>
+              ) : (
+                <TextArea
+                  value={mat.free_text || ''}
+                  onChange={e => updateMaterial(mat.id, 'free_text', e.target.value)}
+                  placeholder="自由输入文案内容..."
+                  autoSize={{ minRows: 3, maxRows: 8 }}
+                  size="small"
+                />
+              )}
+            </div>
           </div>
         ))}
+
         <Button type="dashed" icon={<PlusOutlined />} onClick={addMaterial} block style={{ height: 44 }}>
           添加物料
         </Button>
-      </div>
-
-      {/* 需求文案 */}
-      <div className="section-card">
-        <div className="section-title">需求文案</div>
-        <div style={{ marginBottom: 16 }}>
-          <Radio.Group value={form.copywriting_mode} onChange={e => update('copywriting_mode', e.target.value)}>
-            <Radio.Button value="template">使用模版</Radio.Button>
-            <Radio.Button value="free">自由文本</Radio.Button>
-          </Radio.Group>
-        </div>
-        {form.copywriting_mode === 'template' ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div>
-              <label style={{ fontWeight: 500 }}>主标题</label>
-              <Input value={form.main_title} onChange={e => update('main_title', e.target.value)} placeholder="输入主标题..." style={{ marginTop: 6 }} />
-            </div>
-            <div>
-              <label style={{ fontWeight: 500 }}>副标题</label>
-              <Input value={form.sub_title} onChange={e => update('sub_title', e.target.value)} placeholder="输入副标题..." style={{ marginTop: 6 }} />
-            </div>
-            <div>
-              <label style={{ fontWeight: 500 }}>正文</label>
-              <TextArea value={form.body_text} onChange={e => update('body_text', e.target.value)} placeholder="输入正文内容..." autoSize={{ minRows: 3, maxRows: 8 }} maxLength={2000} showCount style={{ marginTop: 6 }} />
-            </div>
-          </div>
-        ) : (
-          <TextArea value={form.free_text} onChange={e => update('free_text', e.target.value)} placeholder="自由输入文案内容..." autoSize={{ minRows: 4, maxRows: 12 }} maxLength={5000} showCount />
-        )}
       </div>
 
       {/* 设计要求 & 参考素材 */}

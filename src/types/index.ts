@@ -8,6 +8,11 @@ export interface Material {
   quantity: number;
   size: string;
   notes: string;
+  copy_mode?: 'template' | 'free';
+  main_title?: string;
+  sub_title?: string;
+  body_text?: string;
+  free_text?: string;
 }
 
 export interface ReferenceLink {

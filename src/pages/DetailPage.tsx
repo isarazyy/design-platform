@@ -306,11 +306,12 @@ export default function DetailPage() {
 
       {req.materials && req.materials.length > 0 && (
         <div className="section-card">
-          <div className="section-title">需求物料（共 {req.materials.length} 项）</div>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div className="section-title">需求物料 & 文案（共 {req.materials.length} 项）</div>
+          <div style={{ display: 'grid', gap: 12 }}>
             {req.materials.map((mat, idx) => {
               const types = Array.isArray(mat.type) ? mat.type : (mat.type ? [mat.type] : []);
               const sizes = Array.isArray(mat.size) ? mat.size : (mat.size ? String(mat.size).split(',').map(s => s.trim()) : []);
+              const hasCopy = mat.main_title || mat.sub_title || mat.body_text || mat.free_text;
               return (
                 <div key={mat.id || idx} style={{
                   background: '#f8fafc',
@@ -320,6 +321,7 @@ export default function DetailPage() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 600 }}>#{idx + 1}</span>
                       {types.map(t => (
                         <Tag key={t} color="blue" style={{ borderRadius: 6, margin: 0 }}>{t}</Tag>
                       ))}
@@ -349,6 +351,20 @@ export default function DetailPage() {
                       </div>
                     )}
                   </div>
+                  {hasCopy && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #e2e8f0' }}>
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>文案内容</div>
+                      {(mat.copy_mode || 'template') === 'template' ? (
+                        <div>
+                          {mat.main_title && <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a' }}>{mat.main_title}</div>}
+                          {mat.sub_title && <div style={{ fontSize: 14, color: '#475569', marginTop: 4 }}>{mat.sub_title}</div>}
+                          {mat.body_text && <div style={{ fontSize: 13, color: '#64748b', marginTop: 6, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{mat.body_text}</div>}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{mat.free_text}</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
