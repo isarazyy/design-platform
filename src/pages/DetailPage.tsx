@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Tag, Spin, message, Select, Descriptions, Divider, Image, Empty, Badge, Timeline, Tooltip,
+  Button, Tag, Spin, message, Select, Descriptions, Divider, Image, Empty, Timeline, Tooltip,
 } from 'antd';
 import {
   ArrowLeftOutlined, ShareAltOutlined, PrinterOutlined, CopyOutlined, LinkOutlined,
   HomeOutlined, EditOutlined, HistoryOutlined, UserOutlined,
+  PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Requirement, RequirementStatus } from '../types';
@@ -14,18 +15,22 @@ import { useAuth } from '../lib/AuthContext';
 import { getEditLogs, addEditLog, type EditLog } from '../lib/editLog';
 import { getProfile, getAllProfiles, type Profile } from '../lib/auth';
 
-const STATUS_OPTIONS: { label: string; value: RequirementStatus; color: string }[] = [
-  { label: '待审核', value: '待审核', color: 'processing' },
-  { label: '设计中', value: '设计中', color: 'warning' },
-  { label: '已交付', value: '已交付', color: 'success' },
-  { label: '已关闭', value: '已关闭', color: 'default' },
-];
 
-const STATUS_FLOW: Record<RequirementStatus, RequirementStatus[]> = {
-  '草稿': ['待审核'],
-  '待审核': ['设计中', '已关闭'],
-  '设计中': ['已交付', '已关闭'],
-  '已交付': ['已关闭'],
+const STATUS_STEPS: RequirementStatus[] = ['待审核', '设计中', '已交付', '已关闭'];
+
+const STATUS_ACTIONS: Record<RequirementStatus, { label: string; target: RequirementStatus; icon: typeof PlayCircleOutlined; color: string; danger?: boolean }[]> = {
+  '草稿': [{ label: '提交审核', target: '待审核', icon: PlayCircleOutlined, color: '#3b82f6' }],
+  '待审核': [
+    { label: '开始设计', target: '设计中', icon: PlayCircleOutlined, color: '#f59e0b' },
+    { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
+  ],
+  '设计中': [
+    { label: '标记已交付', target: '已交付', icon: CheckCircleOutlined, color: '#10b981' },
+    { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
+  ],
+  '已交付': [
+    { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
+  ],
   '已关闭': [],
 };
 
@@ -187,36 +192,70 @@ export default function DetailPage() {
       </div>
 
       <div className="section-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#1d2129' }}>{req.title}</h1>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
-              <Tag color={TYPE_COLORS[req.type]}>{req.type}</Tag>
-              {req.priority && (
-                <Tag color={PRIORITY_COLORS[req.priority]}>{req.priority}</Tag>
-              )}
-              <Badge
-                status={STATUS_OPTIONS.find(s => s.value === req.status)?.color as 'processing' | 'warning' | 'success' | 'default'}
-                text={req.status}
-              />
-            </div>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#1d2129' }}>{req.title}</h1>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+            <Tag color={TYPE_COLORS[req.type]}>{req.type}</Tag>
+            {req.priority && (
+              <Tag color={PRIORITY_COLORS[req.priority]}>{req.priority}</Tag>
+            )}
           </div>
-          {canChangeStatus() && (
-            <div className="no-print">
-              <Select
-                value={req.status}
-                onChange={handleStatusChange}
-                options={
-                  (STATUS_FLOW[req.status] || []).length > 0
-                    ? STATUS_FLOW[req.status].map(s => ({ label: s, value: s }))
-                    : [{ label: req.status, value: req.status }]
-                }
-                style={{ width: 120 }}
-                disabled={(STATUS_FLOW[req.status] || []).length === 0}
-              />
-            </div>
-          )}
         </div>
+
+        {/* 状态进度条 */}
+        <div className="no-print" style={{ margin: '20px 0 4px', display: 'flex', alignItems: 'center', gap: 0 }}>
+          {STATUS_STEPS.map((step, i) => {
+            const currentIdx = STATUS_STEPS.indexOf(req.status as typeof STATUS_STEPS[number]);
+            const isActive = i <= currentIdx;
+            const isCurrent = step === req.status;
+            const stepColor = isActive
+              ? (step === '已关闭' ? '#94a3b8' : ['#3b82f6', '#f59e0b', '#10b981', '#94a3b8'][i])
+              : '#e2e8f0';
+            return (
+              <div key={step} style={{ display: 'flex', alignItems: 'center', flex: i < STATUS_STEPS.length - 1 ? 1 : undefined }}>
+                <div style={{
+                  padding: '4px 14px',
+                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: isCurrent ? 700 : 500,
+                  background: isCurrent ? stepColor : 'transparent',
+                  color: isCurrent ? '#fff' : (isActive ? stepColor : '#c0c0c0'),
+                  border: isCurrent ? 'none' : `1.5px solid ${isActive ? stepColor : '#e2e8f0'}`,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {step}
+                </div>
+                {i < STATUS_STEPS.length - 1 && (
+                  <div style={{
+                    flex: 1,
+                    height: 2,
+                    background: i < currentIdx ? stepColor : '#e2e8f0',
+                    margin: '0 6px',
+                    minWidth: 20,
+                  }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 操作按钮 */}
+        {canChangeStatus() && (STATUS_ACTIONS[req.status] || []).length > 0 && (
+          <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            {(STATUS_ACTIONS[req.status] || []).map((action, i) => (
+              <Button
+                key={action.target}
+                type={i === 0 ? 'primary' : 'default'}
+                icon={<action.icon />}
+                danger={action.danger}
+                onClick={() => handleStatusChange(action.target)}
+                style={i === 0 && !action.danger ? { background: action.color, borderColor: action.color } : undefined}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <Divider style={{ margin: '16px 0' }} />
 
