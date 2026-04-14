@@ -16,12 +16,17 @@ import { getEditLogs, addEditLog, type EditLog } from '../lib/editLog';
 import { getAllProfiles, type Profile } from '../lib/auth';
 
 
-const STATUS_STEPS: RequirementStatus[] = ['待审核', '设计中', '已交付', '已关闭'];
+const STATUS_STEPS: { value: RequirementStatus; label: string }[] = [
+  { value: '待审核', label: '待审核' },
+  { value: '设计中', label: '制作中' },
+  { value: '已交付', label: '已交付' },
+  { value: '已关闭', label: '已关闭' },
+];
 
 const STATUS_ACTIONS: Record<RequirementStatus, { label: string; target: RequirementStatus; icon: typeof PlayCircleOutlined; color: string; danger?: boolean }[]> = {
   '草稿': [{ label: '提交审核', target: '待审核', icon: PlayCircleOutlined, color: '#3b82f6' }],
   '待审核': [
-    { label: '开始设计', target: '设计中', icon: PlayCircleOutlined, color: '#f59e0b' },
+    { label: '开始制作', target: '设计中', icon: PlayCircleOutlined, color: '#f59e0b' },
     { label: '关闭需求', target: '已关闭', icon: CloseCircleOutlined, color: '#94a3b8', danger: true },
   ],
   '设计中': [
@@ -200,14 +205,14 @@ export default function DetailPage() {
         {/* 状态进度条 */}
         <div className="no-print" style={{ margin: '20px 0 4px', display: 'flex', alignItems: 'center', gap: 0 }}>
           {STATUS_STEPS.map((step, i) => {
-            const currentIdx = STATUS_STEPS.indexOf(req.status as typeof STATUS_STEPS[number]);
+            const currentIdx = STATUS_STEPS.findIndex(s => s.value === req.status);
             const isActive = i <= currentIdx;
-            const isCurrent = step === req.status;
+            const isCurrent = step.value === req.status;
             const stepColor = isActive
-              ? (step === '已关闭' ? '#94a3b8' : ['#3b82f6', '#f59e0b', '#10b981', '#94a3b8'][i])
+              ? (step.value === '已关闭' ? '#94a3b8' : ['#3b82f6', '#f59e0b', '#10b981', '#94a3b8'][i])
               : '#e2e8f0';
             return (
-              <div key={step} style={{ display: 'flex', alignItems: 'center', flex: i < STATUS_STEPS.length - 1 ? 1 : undefined }}>
+              <div key={step.value} style={{ display: 'flex', alignItems: 'center', flex: i < STATUS_STEPS.length - 1 ? 1 : undefined }}>
                 <div style={{
                   padding: '4px 14px',
                   borderRadius: 20,
@@ -218,7 +223,7 @@ export default function DetailPage() {
                   border: isCurrent ? 'none' : `1.5px solid ${isActive ? stepColor : '#e2e8f0'}`,
                   whiteSpace: 'nowrap',
                 }}>
-                  {step}
+                  {step.label}
                 </div>
                 {i < STATUS_STEPS.length - 1 && (
                   <div style={{
