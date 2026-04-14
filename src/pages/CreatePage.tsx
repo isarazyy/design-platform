@@ -270,7 +270,14 @@ export default function CreatePage() {
             <label style={{ fontWeight: 500 }}>开始日期</label>
             <DatePicker
               value={form.start_date ? dayjs(form.start_date) : null}
-              onChange={(d) => update('start_date', d ? d.format('YYYY-MM-DD') : null)}
+              onChange={(d) => {
+                const v = d ? d.format('YYYY-MM-DD') : null;
+                update('start_date', v);
+                if (v && form.end_date && dayjs(form.end_date).isBefore(dayjs(v))) {
+                  update('end_date', null);
+                }
+              }}
+              disabledDate={(d) => form.end_date ? d.isAfter(dayjs(form.end_date), 'day') : false}
               style={{ width: '100%', marginTop: 6 }}
               placeholder="选择开始日期"
             />
@@ -280,6 +287,7 @@ export default function CreatePage() {
             <DatePicker
               value={form.end_date ? dayjs(form.end_date) : null}
               onChange={(d) => update('end_date', d ? d.format('YYYY-MM-DD') : null)}
+              disabledDate={(d) => form.start_date ? d.isBefore(dayjs(form.start_date), 'day') : false}
               style={{ width: '100%', marginTop: 6 }}
               placeholder="选择截止日期"
             />
