@@ -1,5 +1,5 @@
 import { Layout, Menu, Dropdown, Button, Avatar } from 'antd';
-import { HomeOutlined, PlusCircleOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
+import { HomeOutlined, PlusCircleOutlined, LogoutOutlined, SettingOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { signOut } from '../lib/auth';
@@ -14,6 +14,7 @@ export default function AppLayout() {
   const menuItems = [
     { key: '/', icon: <HomeOutlined />, label: '需求列表' },
     { key: '/create', icon: <PlusCircleOutlined />, label: '创建需求' },
+    { key: '/drafts', icon: <FileTextOutlined />, label: '草稿箱' },
   ];
 
   if (profile?.role === 'admin') {

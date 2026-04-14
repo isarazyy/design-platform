@@ -6,7 +6,7 @@ import {
   PlusOutlined, DeleteOutlined, SendOutlined, SaveOutlined, ClearOutlined,
   InboxOutlined, LinkOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Material, ReferenceLink, RequirementFormData, RequirementType, Priority } from '../types';
 import { createRequirement, saveDraft, loadDraft, clearDraft, uploadImage } from '../lib/storage';
@@ -59,17 +59,23 @@ const emptyForm: RequirementFormData = {
 
 export default function CreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const draftId = searchParams.get('draft');
   const { user, profile } = useAuth();
   const [form, setForm] = useState<RequirementFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const currentDraftId = useRef<string | null>(draftId);
 
   useEffect(() => {
-    const draft = loadDraft();
-    if (draft) {
-      setForm(prev => ({ ...prev, ...draft }));
-      message.info('已恢复上次的草稿');
+    if (draftId) {
+      const draft = loadDraft(draftId);
+      if (draft) {
+        setForm(prev => ({ ...prev, ...draft }));
+        message.info('已恢复草稿');
+      }
+      currentDraftId.current = draftId;
     }
     if (profile) {
       setForm(prev => ({
@@ -78,11 +84,13 @@ export default function CreatePage() {
         department: prev.department || profile.department,
       }));
     }
-  }, [profile]);
+  }, [profile, draftId]);
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      saveDraft(form);
+      if (currentDraftId.current) {
+        saveDraft(form, currentDraftId.current);
+      }
     }, 5000);
     return () => clearInterval(timerRef.current);
   }, [form]);
@@ -166,7 +174,9 @@ export default function CreatePage() {
       if (user) {
         await addEditLog(req.id, user.id, profile?.name || '', '创建需求');
       }
-      clearDraft();
+      if (currentDraftId.current) {
+        clearDraft(currentDraftId.current);
+      }
       message.success('需求提交成功！');
       navigate(`/req/${req.id}`);
     } catch (err) {
@@ -177,13 +187,17 @@ export default function CreatePage() {
   };
 
   const handleSaveDraft = () => {
-    saveDraft(form);
+    const id = saveDraft(form, currentDraftId.current || undefined);
+    currentDraftId.current = id;
     message.success('草稿已保存');
   };
 
   const handleClear = () => {
     setForm(emptyForm);
-    clearDraft();
+    if (currentDraftId.current) {
+      clearDraft(currentDraftId.current);
+      currentDraftId.current = null;
+    }
     setErrors({});
     message.info('已清空');
   };

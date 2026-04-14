@@ -208,17 +208,77 @@ export async function updateAssignee(id: string, assigneeId: string | null): Pro
   }
 }
 
-export function saveDraft(data: Partial<RequirementFormData>) {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+export interface DraftItem {
+  id: string;
+  title: string;
+  data: Partial<RequirementFormData>;
+  updated_at: string;
 }
 
-export function loadDraft(): Partial<RequirementFormData> | null {
-  const data = localStorage.getItem(DRAFT_KEY);
-  return data ? JSON.parse(data) : null;
+const DRAFTS_KEY = 'design_drafts';
+
+function getAllDraftsRaw(): DraftItem[] {
+  const raw = localStorage.getItem(DRAFTS_KEY);
+  if (!raw) {
+    const legacy = localStorage.getItem(DRAFT_KEY);
+    if (legacy) {
+      const data = JSON.parse(legacy) as Partial<RequirementFormData>;
+      const migrated: DraftItem = {
+        id: 'd_' + Date.now().toString(36),
+        title: data.title || '未命名草稿',
+        data,
+        updated_at: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify([migrated]));
+      localStorage.removeItem(DRAFT_KEY);
+      return [migrated];
+    }
+    return [];
+  }
+  return JSON.parse(raw);
 }
 
-export function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
+export function getAllDrafts(): DraftItem[] {
+  return getAllDraftsRaw().sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+}
+
+export function saveDraft(data: Partial<RequirementFormData>, draftId?: string) {
+  const drafts = getAllDraftsRaw();
+  const id = draftId || 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const idx = drafts.findIndex(d => d.id === id);
+  const item: DraftItem = {
+    id,
+    title: data.title || '未命名草稿',
+    data,
+    updated_at: new Date().toISOString(),
+  };
+  if (idx >= 0) {
+    drafts[idx] = item;
+  } else {
+    drafts.push(item);
+  }
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  return id;
+}
+
+export function loadDraft(draftId?: string): Partial<RequirementFormData> | null {
+  const drafts = getAllDraftsRaw();
+  if (draftId) {
+    const found = drafts.find(d => d.id === draftId);
+    return found ? found.data : null;
+  }
+  return null;
+}
+
+export function clearDraft(draftId?: string) {
+  if (draftId) {
+    const drafts = getAllDraftsRaw().filter(d => d.id !== draftId);
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  }
+}
+
+export function getDraftCount(): number {
+  return getAllDraftsRaw().length;
 }
 
 export async function uploadImage(file: File): Promise<string> {

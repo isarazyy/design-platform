@@ -9,6 +9,7 @@ import EditPage from './pages/EditPage';
 import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
+import DraftsPage from './pages/DraftsPage';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -35,6 +36,7 @@ function AppRoutes() {
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />
+        <Route path="/drafts" element={<DraftsPage />} />
         <Route path="/edit/:id" element={<EditPage />} />
         <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
       </Route>
