@@ -1,4 +1,4 @@
-import type { Requirement, RequirementFormData, RequirementStatus } from '../types';
+import type { Requirement, RequirementFormData, RequirementStatus, Deliverable } from '../types';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const LOCAL_KEY = 'design_requirements';
@@ -26,6 +26,7 @@ export async function createRequirement(formData: RequirementFormData, creatorId
     creator_id: creatorId || null,
     collaborator_ids: [],
     assignee_id: null,
+    deliverables: [],
     created_at: now,
     updated_at: now,
   };
@@ -206,6 +207,72 @@ export async function updateAssignee(id: string, assigneeId: string | null): Pro
 
     if (error) throw new Error(error.message);
   }
+}
+
+export async function updateDeliverables(id: string, deliverables: Deliverable[]): Promise<void> {
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase
+      .from('requirements')
+      .update({ deliverables, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const reqs = getLocalRequirements();
+  const idx = reqs.findIndex(r => r.id === id);
+  if (idx !== -1) {
+    reqs[idx].deliverables = deliverables;
+    reqs[idx].updated_at = new Date().toISOString();
+    saveLocalRequirements(reqs);
+  }
+}
+
+export async function uploadDeliverable(file: File): Promise<string> {
+  if (file.size > 50 * 1024 * 1024) {
+    throw new Error('文件不能超过 50MB');
+  }
+  if (isSupabaseConfigured() && supabase) {
+    const ext = file.name.split('.').pop() || 'bin';
+    const path = `deliverables/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from('design-assets').upload(path, file, { cacheControl: '31536000' });
+    if (!error) {
+      const { data } = supabase.storage.from('design-assets').getPublicUrl(path);
+      return data.publicUrl;
+    }
+  }
+  return URL.createObjectURL(file);
+}
+
+export async function batchUpdateStatus(ids: string[], status: RequirementStatus): Promise<void> {
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase
+      .from('requirements')
+      .update({ status, updated_at: new Date().toISOString() })
+      .in('id', ids);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const reqs = getLocalRequirements();
+  for (const r of reqs) {
+    if (ids.includes(r.id)) {
+      r.status = status;
+      r.updated_at = new Date().toISOString();
+    }
+  }
+  saveLocalRequirements(reqs);
+}
+
+export async function batchDeleteRequirements(ids: string[]): Promise<void> {
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase
+      .from('requirements')
+      .delete()
+      .in('id', ids);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const reqs = getLocalRequirements().filter(r => !ids.includes(r.id));
+  saveLocalRequirements(reqs);
 }
 
 export interface DraftItem {

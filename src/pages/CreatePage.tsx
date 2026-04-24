@@ -9,7 +9,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Material, ReferenceLink, RequirementFormData, RequirementType, Priority, VersionNode } from '../types';
-import { createRequirement, saveDraft, loadDraft, clearDraft, uploadImage } from '../lib/storage';
+import { createRequirement, saveDraft, loadDraft, clearDraft, uploadImage, getRequirementById } from '../lib/storage';
 import { useAuth } from '../lib/AuthContext';
 import { addEditLog } from '../lib/editLog';
 
@@ -25,6 +25,14 @@ const PRIORITIES: { value: Priority; color: string }[] = [
 
 const MATERIAL_TYPES = ['长图', 'H5', '海报', 'Banner', '插画', 'icon', '视频', '动画', '包装', '礼品', '绘本', '其他'];
 const SIZE_OPTIONS = ['1080x1920', '750x1334', '1920x1080', '800x800', '640x960', 'A4', 'A3'];
+
+const TEMPLATES = [
+  { label: '活动海报', type: '视觉设计' as RequirementType, material: { type: '海报', quantity: 1 } },
+  { label: 'H5页面', type: '视觉设计' as RequirementType, material: { type: 'H5', quantity: 1 } },
+  { label: 'Banner', type: '视觉设计' as RequirementType, material: { type: 'Banner', quantity: 1 } },
+  { label: '视频', type: '动画' as RequirementType, material: { type: '视频', quantity: 1 } },
+  { label: '插画', type: '美术' as RequirementType, material: { type: '插画', quantity: 1 } },
+];
 
 function generateMaterialId() {
   return 'm_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
@@ -62,6 +70,7 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draft');
+  const copyId = searchParams.get('copy');
   const { user, profile } = useAuth();
   const [form, setForm] = useState<RequirementFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -70,7 +79,35 @@ export default function CreatePage() {
   const currentDraftId = useRef<string | null>(draftId);
 
   useEffect(() => {
-    if (draftId) {
+    if (copyId) {
+      (async () => {
+        const src = await getRequirementById(copyId);
+        if (src) {
+          setForm(prev => ({
+            ...prev,
+            title: src.title + '（副本）',
+            department: src.department,
+            type: src.type,
+            background: src.background,
+            objective: src.objective,
+            priority: src.priority,
+            materials: src.materials || [],
+            versions: [],
+            copywriting_mode: src.copywriting_mode,
+            main_title: src.main_title,
+            sub_title: src.sub_title,
+            body_text: src.body_text,
+            free_text: src.free_text,
+            style_tags: src.style_tags || [],
+            design_notes: src.design_notes,
+            reference_links: src.reference_links || [],
+            reference_images: src.reference_images || [],
+            extra_notes: src.extra_notes,
+          }));
+          message.success('已复制需求内容，请修改后提交');
+        }
+      })();
+    } else if (draftId) {
       const draft = loadDraft(draftId);
       if (draft) {
         setForm(prev => ({ ...prev, ...draft }));
@@ -85,7 +122,7 @@ export default function CreatePage() {
         department: prev.department || profile.department,
       }));
     }
-  }, [profile, draftId]);
+  }, [profile, draftId, copyId]);
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -205,6 +242,28 @@ export default function CreatePage() {
 
   return (
     <div style={{ paddingBottom: 80 }}>
+      {/* 快速模板 */}
+      <div className="section-card" style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 500, color: '#64748b', fontSize: 13 }}>快速模板</span>
+          {TEMPLATES.map(t => (
+            <Button
+              key={t.label}
+              size="small"
+              onClick={() => {
+                update('type', t.type);
+                update('materials', [
+                  { id: generateMaterialId(), type: t.material.type, quantity: t.material.quantity, size: '', notes: '', copy_mode: 'template' as const, main_title: '', sub_title: '', body_text: '', free_text: '' },
+                ]);
+                message.success(`已使用「${t.label}」模板`);
+              }}
+              style={{ borderRadius: 20, borderColor: '#e2e8f0' }}
+            >
+              {t.label}
+            </Button>
+          ))}
+        </div>
+      </div>
       {/* 基本信息 */}
       <div className="section-card">
         <div className="section-title">基本信息</div>
@@ -336,6 +395,8 @@ export default function CreatePage() {
                 disabledDate={d => {
                   if (form.start_date && d.isBefore(dayjs(form.start_date), 'day')) return true;
                   if (form.end_date && d.isAfter(dayjs(form.end_date), 'day')) return true;
+                  const prevDate = idx > 0 ? form.versions[idx - 1]?.date : null;
+                  if (prevDate && d.isBefore(dayjs(prevDate), 'day')) return true;
                   return false;
                 }}
                 placeholder="提交日期"

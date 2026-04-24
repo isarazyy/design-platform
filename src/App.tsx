@@ -1,6 +1,9 @@
+import './dayjs-locale';
 import { ConfigProvider, Spin } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
+import zhCNRaw from 'antd/locale/zh_CN';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+const zhCN = (zhCNRaw as unknown as { default?: typeof zhCNRaw }).default ?? zhCNRaw;
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import AppLayout from './components/AppLayout';
 import HomePage from './pages/HomePage';
@@ -10,6 +13,7 @@ import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import DraftsPage from './pages/DraftsPage';
+import DashboardPage from './pages/DashboardPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import type { ReactNode } from 'react';
 
@@ -39,6 +43,7 @@ function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />
         <Route path="/drafts" element={<DraftsPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/edit/:id" element={<EditPage />} />
         <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
       </Route>

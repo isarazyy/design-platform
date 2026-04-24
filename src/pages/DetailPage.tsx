@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Tag, Spin, message, Select, Descriptions, Divider, Image, Empty, Timeline,
+  Button, Tag, Spin, message, Select, Descriptions, Divider, Image, Empty, Timeline, Upload,
 } from 'antd';
 import {
   ArrowLeftOutlined, ShareAltOutlined, PrinterOutlined, CopyOutlined, LinkOutlined,
   HomeOutlined, EditOutlined, HistoryOutlined,
-  PlayCircleOutlined, CheckCircleOutlined,
+  PlayCircleOutlined, CheckCircleOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined, SnippetsOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type { Requirement, RequirementStatus } from '../types';
-import { getRequirementById, updateRequirementStatus, updateCollaborators, updateAssignee } from '../lib/storage';
+import type { Requirement, RequirementStatus, Deliverable } from '../types';
+import { getRequirementById, updateRequirementStatus, updateCollaborators, updateAssignee, updateDeliverables, uploadDeliverable } from '../lib/storage';
+import { createNotification } from '../lib/notifications';
 import { useAuth } from '../lib/AuthContext';
 import { getEditLogs, addEditLog, type EditLog } from '../lib/editLog';
 import { getAllProfiles, type Profile } from '../lib/auth';
@@ -133,6 +134,9 @@ export default function DetailPage() {
         const assigneeName = assigneeId ? resolveDisplay(assigneeId) : '';
         await addEditLog(id, user.id, profile?.name || '', '指派负责人', assigneeName ? `指派给 ${assigneeName}` : '取消指派');
         setLogs(await getEditLogs(id));
+        if (assigneeId && assigneeId !== user.id) {
+          await createNotification(assigneeId, 'assigned', '你被指派为负责人', `${profile?.name || ''}指派你负责「${req.title}」`, id);
+        }
       }
       message.success('指派已更新');
     } catch {
@@ -148,8 +152,55 @@ export default function DetailPage() {
       setReq({ ...req, status });
       setLogs(await getEditLogs(req.id));
       message.success(`状态已更新为「${status}」`);
+      const notifyIds = new Set<string>();
+      if (req.creator_id && req.creator_id !== user.id) notifyIds.add(req.creator_id);
+      if (req.assignee_id && req.assignee_id !== user.id) notifyIds.add(req.assignee_id);
+      for (const uid of notifyIds) {
+        await createNotification(uid, 'status_change', '需求状态变更', `「${req.title}」${req.status} → ${status}`, req.id);
+      }
     } catch {
       message.error('更新失败');
+    }
+  };
+
+  const handleCopyRequirement = () => {
+    if (!req) return;
+    const params = new URLSearchParams({ copy: req.id });
+    navigate(`/create?${params.toString()}`);
+  };
+
+  const handleUploadDeliverable = async (file: File) => {
+    if (!req || !id || !user) return false;
+    try {
+      const url = await uploadDeliverable(file);
+      const newItem: Deliverable = {
+        id: 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: file.name,
+        url,
+        uploaded_at: new Date().toISOString(),
+        uploaded_by: profile?.name || user.id,
+      };
+      const updated = [...(req.deliverables || []), newItem];
+      await updateDeliverables(id, updated);
+      setReq({ ...req, deliverables: updated });
+      await addEditLog(id, user.id, profile?.name || '', '上传交付物', file.name);
+      setLogs(await getEditLogs(id));
+      message.success('交付物已上传');
+    } catch {
+      message.error('上传失败');
+    }
+    return false;
+  };
+
+  const handleRemoveDeliverable = async (deliverableId: string) => {
+    if (!req || !id || !user) return;
+    const updated = (req.deliverables || []).filter(d => d.id !== deliverableId);
+    try {
+      await updateDeliverables(id, updated);
+      setReq({ ...req, deliverables: updated });
+      message.success('已删除');
+    } catch {
+      message.error('删除失败');
     }
   };
 
@@ -190,6 +241,7 @@ export default function DetailPage() {
           {canEdit() && (
             <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/edit/${req?.id}`)}>编辑</Button>
           )}
+          <Button icon={<SnippetsOutlined />} onClick={handleCopyRequirement}>复制需求</Button>
           <Button icon={<CopyOutlined />} onClick={handleCopyLink}>复制链接</Button>
           <Button icon={<PrinterOutlined />} onClick={handlePrint}>打印</Button>
         </div>
@@ -515,6 +567,45 @@ export default function DetailPage() {
           <div style={{ lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{req.extra_notes}</div>
         </div>
       )}
+
+      {/* 交付物 */}
+      <div className="section-card no-print">
+        <div className="section-title">交付物</div>
+        {(req.deliverables || []).length > 0 ? (
+          <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+            {(req.deliverables || []).map(d => (
+              <div key={d.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 500 }}>{d.name}</a>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                    {d.uploaded_by} · {dayjs(d.uploaded_at).format('MM-DD HH:mm')}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <Button type="text" size="small" icon={<DownloadOutlined />} href={d.url} target="_blank" />
+                  {(isCreatorOrAdmin() || req.assignee_id === user?.id) && (
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveDeliverable(d.id)} />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: '#94a3b8', marginBottom: 16 }}>暂无交付物</div>
+        )}
+        {(isCreatorOrAdmin() || req.assignee_id === user?.id) && (
+          <Upload
+            showUploadList={false}
+            beforeUpload={(file) => { handleUploadDeliverable(file); return false; }}
+            multiple
+          >
+            <Button icon={<UploadOutlined />}>上传交付物</Button>
+          </Upload>
+        )}
+      </div>
 
       {/* 修改记录 */}
       {logs.length > 0 && (

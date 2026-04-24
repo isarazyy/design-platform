@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Input, Select, Button, Tag, Badge, Popconfirm, message, Skeleton, Pagination, Segmented } from 'antd';
+import { Input, Select, Button, Tag, Badge, Popconfirm, message, Skeleton, Pagination, Segmented, Checkbox } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EyeOutlined, FileTextOutlined,
   ClockCircleOutlined, CheckCircleOutlined, SendOutlined, DeleteOutlined,
-  UserOutlined, WarningOutlined,
+  UserOutlined, WarningOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Requirement, RequirementType, RequirementStatus } from '../types';
-import { getRequirements, deleteRequirement } from '../lib/storage';
+import { getRequirements, deleteRequirement, batchUpdateStatus, batchDeleteRequirements } from '../lib/storage';
 import { useAuth } from '../lib/AuthContext';
+import { getAllProfiles, type Profile } from '../lib/auth';
 
 const PAGE_SIZE = 20;
 
@@ -41,9 +42,41 @@ const STAT_ICONS = [
   { icon: <CheckCircleOutlined />, color: '#10b981' },
 ];
 
+const ALL_STATUSES: RequirementStatus[] = ['待制作', '制作中', '待审核', '已交付', '已关闭'];
+
 function isOverdue(req: Requirement): boolean {
   if (!req.end_date || req.status === '已交付' || req.status === '已关闭') return false;
   return dayjs(req.end_date).isBefore(dayjs(), 'day');
+}
+
+function resolveAssignee(req: Requirement, profiles: Profile[]): string {
+  if (!req.assignee_id) return '';
+  const p = profiles.find(pr => pr.id === req.assignee_id);
+  return p ? p.name : '';
+}
+
+function exportCSV(reqs: Requirement[], profiles: Profile[]) {
+  const header = ['标题', '提需人', '部门', '需求类型', '状态', '优先级', '负责人', '创建日期', '截止日期'];
+  const rows = reqs.map(r => [
+    r.title,
+    r.requester,
+    r.department,
+    r.type,
+    r.status,
+    r.priority || '',
+    resolveAssignee(r, profiles),
+    dayjs(r.created_at).format('YYYY-MM-DD'),
+    r.end_date || '',
+  ]);
+  const bom = '\uFEFF';
+  const csv = bom + [header, ...rows].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `需求列表_${dayjs().format('YYYY-MM-DD')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function HomePage() {
@@ -56,6 +89,9 @@ export default function HomePage() {
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [scope, setScope] = useState<string>('全部');
   const [page, setPage] = useState(1);
+  const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchLoading, setBatchLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -64,8 +100,9 @@ export default function HomePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await getRequirements();
+      const [data, profiles] = await Promise.all([getRequirements(), getAllProfiles()]);
       setRequirements(data);
+      setAllProfiles(profiles);
     } catch {
       // silent
     } finally {
@@ -103,6 +140,43 @@ export default function HomePage() {
     { label: '制作中', value: requirements.filter(r => r.status === '制作中').length, status: '制作中' },
     { label: '已交付', value: requirements.filter(r => r.status === '已交付').length, status: '已交付' },
   ];
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleBatchStatus = async (status: RequirementStatus) => {
+    if (selectedIds.length === 0) return;
+    setBatchLoading(true);
+    try {
+      await batchUpdateStatus(selectedIds, status);
+      setRequirements(prev => prev.map(r => selectedIds.includes(r.id) ? { ...r, status } : r));
+      message.success(`已将 ${selectedIds.length} 条需求改为「${status}」`);
+      setSelectedIds([]);
+    } catch {
+      message.error('批量操作失败');
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBatchLoading(true);
+    try {
+      await batchDeleteRequirements(selectedIds);
+      setRequirements(prev => prev.filter(r => !selectedIds.includes(r.id)));
+      message.success(`已删除 ${selectedIds.length} 条需求`);
+      setSelectedIds([]);
+    } catch {
+      message.error('批量删除失败');
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div>
@@ -170,6 +244,13 @@ export default function HomePage() {
             ]}
           />
           <Button
+            icon={<DownloadOutlined />}
+            onClick={() => exportCSV(filtered, allProfiles)}
+            style={{ borderRadius: 10, height: 38 }}
+          >
+            导出
+          </Button>
+          <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate('/create')}
@@ -179,6 +260,34 @@ export default function HomePage() {
           </Button>
         </div>
       </div>
+
+      {/* 批量操作栏 */}
+      {isAdmin && selectedIds.length > 0 && (
+        <div className="section-card" style={{
+          marginBottom: 16,
+          padding: '10px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          background: '#f0f0ff',
+          border: '1px solid #c7d2fe',
+        }}>
+          <span style={{ fontWeight: 500, color: '#4f46e5' }}>已选 {selectedIds.length} 项</span>
+          <Select
+            placeholder="批量改状态"
+            size="small"
+            style={{ width: 130 }}
+            onChange={v => { if (v) handleBatchStatus(v as RequirementStatus); }}
+            loading={batchLoading}
+            options={ALL_STATUSES.map(s => ({ label: s, value: s }))}
+            value={null as unknown as string}
+          />
+          <Popconfirm title={`确定删除 ${selectedIds.length} 条需求？`} onConfirm={handleBatchDelete} okText="删除" cancelText="取消" okButtonProps={{ danger: true }}>
+            <Button danger size="small" loading={batchLoading}>批量删除</Button>
+          </Popconfirm>
+          <Button size="small" onClick={() => setSelectedIds([])}>取消选择</Button>
+        </div>
+      )}
 
       {/* 列表 */}
       {loading ? (
@@ -213,72 +322,104 @@ export default function HomePage() {
       ) : (
         <>
           <div style={{ display: 'grid', gap: 12 }}>
-            {paged.map(req => (
-              <div
-                key={req.id}
-                className="req-item"
-                onClick={() => navigate(`/req/${req.id}`)}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: '#0f172a' }}>{req.title}</span>
-                      <Tag color={TYPE_COLORS[req.type]} style={{ borderRadius: 6 }}>{req.type}</Tag>
-                      <Badge
-                        status={STATUS_COLORS[req.status] as 'default' | 'processing' | 'warning' | 'success'}
-                        text={<span style={{ fontSize: 13, color: '#64748b' }}>{req.status}</span>}
-                      />
-                      {isOverdue(req) && (
-                        <Tag color="red" icon={<WarningOutlined />} style={{ borderRadius: 6 }}>已逾期</Tag>
+            {paged.map(req => {
+              const assigneeName = resolveAssignee(req, allProfiles);
+              const versionCount = (req.versions || []).length;
+              return (
+                <div
+                  key={req.id}
+                  className="req-item"
+                  onClick={() => navigate(`/req/${req.id}`)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: 10, flex: 1 }}>
+                      {isAdmin && (
+                        <div style={{ paddingTop: 2 }} onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.includes(req.id)}
+                            onClick={e => toggleSelect(req.id, e as unknown as React.MouseEvent)}
+                          />
+                        </div>
                       )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 16, color: '#94a3b8', fontSize: 13, flexWrap: 'wrap' }}>
-                      <span>{req.requester}</span>
-                      {req.department && <span>{req.department}</span>}
-                      {req.priority && (
-                        <span style={{ color: PRIORITY_COLORS[req.priority], fontWeight: 500 }}>{req.priority}</span>
-                      )}
-                      <span>{dayjs(req.created_at).format('MM-DD HH:mm')}</span>
-                      {req.end_date && (
-                        <span style={{ color: isOverdue(req) ? '#ef4444' : '#94a3b8' }}>
-                          截止 {req.end_date}
-                        </span>
-                      )}
-                    </div>
-                    {req.background && (
-                      <div style={{ color: '#64748b', marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
-                        {req.background.length > 100 ? req.background.substring(0, 100) + '...' : req.background}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 16, fontWeight: 600, color: '#0f172a' }}>{req.title}</span>
+                          <Tag color={TYPE_COLORS[req.type]} style={{ borderRadius: 6 }}>{req.type}</Tag>
+                          <Badge
+                            status={STATUS_COLORS[req.status] as 'default' | 'processing' | 'warning' | 'success'}
+                            text={<span style={{ fontSize: 13, color: '#64748b' }}>{req.status}</span>}
+                          />
+                          {req.priority && (
+                            <Tag color={PRIORITY_COLORS[req.priority]} style={{ borderRadius: 6, border: 'none', color: '#fff' }}>
+                              {req.priority}
+                            </Tag>
+                          )}
+                          {isOverdue(req) && (
+                            <Tag color="red" icon={<WarningOutlined />} style={{ borderRadius: 6 }}>已逾期</Tag>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 16, color: '#94a3b8', fontSize: 13, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span>{req.requester}</span>
+                          {req.department && <span>{req.department}</span>}
+                          {assigneeName && (
+                            <span style={{ color: '#4f46e5' }}>
+                              <UserOutlined style={{ marginRight: 3, fontSize: 11 }} />
+                              {assigneeName}
+                            </span>
+                          )}
+                          {!assigneeName && req.assignee_id && (
+                            <span style={{ color: '#c0c0c0' }}>未指派</span>
+                          )}
+                          {versionCount > 0 && (
+                            <span>
+                              {Array.from({ length: versionCount }, (_, i) => (
+                                <Tag key={i} color="blue" style={{ borderRadius: 4, margin: 0, marginRight: 3, padding: '0 5px', fontSize: 11 }}>V{i + 1}</Tag>
+                              ))}
+                            </span>
+                          )}
+                          <span>{dayjs(req.created_at).format('MM-DD HH:mm')}</span>
+                          {req.end_date && (
+                            <span style={{ color: isOverdue(req) ? '#ef4444' : '#94a3b8' }}>
+                              截止 {req.end_date}
+                            </span>
+                          )}
+                        </div>
+                        {req.background && (
+                          <div style={{ color: '#64748b', marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
+                            {req.background.length > 100 ? req.background.substring(0, 100) + '...' : req.background}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 4, marginLeft: 12 }}>
-                    <Button
-                      type="text"
-                      icon={<EyeOutlined />}
-                      onClick={(e) => { e.stopPropagation(); navigate(`/req/${req.id}`); }}
-                      style={{ color: '#64748b' }}
-                    />
-                    {(profile?.role === 'admin' || req.creator_id === user?.id) && (
-                      <Popconfirm
-                        title="确定删除这个需求？"
-                        onConfirm={(e) => handleDelete(req.id, e as unknown as React.MouseEvent)}
-                        onCancel={(e) => e?.stopPropagation()}
-                        okText="删除"
-                        cancelText="取消"
-                        okButtonProps={{ danger: true }}
-                      >
-                        <Button
-                          type="text"
-                          icon={<DeleteOutlined />}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ color: '#94a3b8' }}
-                        />
-                      </Popconfirm>
-                    )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, marginLeft: 12 }}>
+                      <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/req/${req.id}`); }}
+                        style={{ color: '#64748b' }}
+                      />
+                      {(isAdmin || req.creator_id === user?.id) && (
+                        <Popconfirm
+                          title="确定删除这个需求？"
+                          onConfirm={(e) => handleDelete(req.id, e as unknown as React.MouseEvent)}
+                          onCancel={(e) => e?.stopPropagation()}
+                          okText="删除"
+                          cancelText="取消"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button
+                            type="text"
+                            icon={<DeleteOutlined />}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ color: '#94a3b8' }}
+                          />
+                        </Popconfirm>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {filtered.length > PAGE_SIZE && (
             <div style={{ textAlign: 'center', marginTop: 24 }}>

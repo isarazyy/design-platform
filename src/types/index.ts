@@ -28,6 +28,14 @@ export interface ReferenceLink {
   description: string;
 }
 
+export interface Deliverable {
+  id: string;
+  name: string;
+  url: string;
+  uploaded_at: string;
+  uploaded_by: string;
+}
+
 export interface Requirement {
   id: string;
   title: string;
@@ -55,8 +63,9 @@ export interface Requirement {
   creator_id: string | null;
   collaborator_ids: string[];
   assignee_id: string | null;
+  deliverables: Deliverable[];
   created_at: string;
   updated_at: string;
 }
 
-export type RequirementFormData = Omit<Requirement, 'id' | 'created_at' | 'updated_at' | 'status' | 'creator_id' | 'collaborator_ids' | 'assignee_id'>;
+export type RequirementFormData = Omit<Requirement, 'id' | 'created_at' | 'updated_at' | 'status' | 'creator_id' | 'collaborator_ids' | 'assignee_id' | 'deliverables'>;

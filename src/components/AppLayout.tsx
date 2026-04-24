@@ -1,5 +1,7 @@
-import { Layout, Menu, Dropdown, Button, Avatar } from 'antd';
-import { HomeOutlined, PlusCircleOutlined, LogoutOutlined, SettingOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Layout, Menu, Dropdown, Button, Avatar, Drawer } from 'antd';
+import { HomeOutlined, PlusCircleOutlined, LogoutOutlined, SettingOutlined, FileTextOutlined, BarChartOutlined, MenuOutlined } from '@ant-design/icons';
+import NotificationBell from './NotificationBell';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { signOut } from '../lib/auth';
@@ -10,11 +12,13 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { key: '/', icon: <HomeOutlined />, label: '需求列表' },
     { key: '/create', icon: <PlusCircleOutlined />, label: '创建需求' },
     { key: '/drafts', icon: <FileTextOutlined />, label: '草稿箱' },
+    { key: '/dashboard', icon: <BarChartOutlined />, label: '数据看板' },
   ];
 
   if (profile?.role === 'admin') {
@@ -26,6 +30,11 @@ export default function AppLayout() {
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const handleMobileNav = (key: string) => {
+    navigate(key);
+    setMobileMenuOpen(false);
   };
 
   const userMenuItems = [
@@ -72,6 +81,13 @@ export default function AppLayout() {
           lineHeight: '60px',
         }}
       >
+        <Button
+          type="text"
+          icon={<MenuOutlined />}
+          className="mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen(true)}
+          style={{ display: 'none', marginRight: 8 }}
+        />
         <div
           style={{
             fontSize: 18,
@@ -96,6 +112,7 @@ export default function AppLayout() {
           onClick={({ key }) => navigate(key)}
           style={{ flex: 1, border: 'none', background: 'transparent', lineHeight: '58px' }}
         />
+        <NotificationBell />
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
           <Button type="text" style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 8px' }}>
             <Avatar size={30} style={{ background: '#4f46e5', fontSize: 14 }}>{initials}</Avatar>
@@ -103,6 +120,29 @@ export default function AppLayout() {
           </Button>
         </Dropdown>
       </Header>
+
+      <Drawer
+        title="导航"
+        placement="left"
+        onClose={() => setMobileMenuOpen(false)}
+        open={mobileMenuOpen}
+        width={260}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[currentKey]}
+          items={menuItems}
+          onClick={({ key }) => handleMobileNav(key)}
+          style={{ border: 'none' }}
+        />
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #f0f0f0' }}>
+          <Button block danger onClick={handleLogout} icon={<LogoutOutlined />}>
+            退出登录
+          </Button>
+        </div>
+      </Drawer>
+
       <Content style={{ padding: '28px 24px', maxWidth: 960, margin: '0 auto', width: '100%' }}>
         <Outlet />
       </Content>

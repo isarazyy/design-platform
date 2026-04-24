@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 import type { Material, ReferenceLink, RequirementFormData, RequirementType, Priority, VersionNode } from '../types';
 import { getRequirementById, updateRequirement, uploadImage } from '../lib/storage';
 import { useAuth } from '../lib/AuthContext';
-import { addEditLog } from '../lib/editLog';
+import { addEditLog, diffFields } from '../lib/editLog';
 
 const { TextArea } = Input;
 
@@ -43,6 +43,7 @@ export default function EditPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const loadedRef = useRef(false);
+  const originalFormRef = useRef<RequirementFormData | null>(null);
 
   useEffect(() => {
     if (id && !loadedRef.current) {
@@ -67,7 +68,7 @@ export default function EditPage() {
           setLoading(false);
           return;
         }
-        setForm({
+        const formData: RequirementFormData = {
           title: req.title,
           requester: req.requester,
           department: req.department,
@@ -91,7 +92,9 @@ export default function EditPage() {
           reference_links: req.reference_links || [],
           reference_images: req.reference_images || [],
           extra_notes: req.extra_notes,
-        });
+        };
+        originalFormRef.current = { ...formData };
+        setForm(formData);
       }
     } catch {
       message.error('加载失败');
@@ -186,7 +189,8 @@ export default function EditPage() {
     try {
       await updateRequirement(id, form);
       if (user) {
-        await addEditLog(id, user.id, profile?.name || '', '编辑需求', '修改了需求内容');
+        const changes = originalFormRef.current ? diffFields(originalFormRef.current, form) : '修改了需求内容';
+        await addEditLog(id, user.id, profile?.name || '', '编辑需求', changes);
       }
       message.success('修改已保存');
       navigate(`/req/${id}`);
@@ -358,6 +362,8 @@ export default function EditPage() {
                 disabledDate={d => {
                   if (form.start_date && d.isBefore(dayjs(form.start_date), 'day')) return true;
                   if (form.end_date && d.isAfter(dayjs(form.end_date), 'day')) return true;
+                  const prevDate = idx > 0 ? form.versions[idx - 1]?.date : null;
+                  if (prevDate && d.isBefore(dayjs(prevDate), 'day')) return true;
                   return false;
                 }}
                 placeholder="提交日期"

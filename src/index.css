@@ -215,16 +215,64 @@ body {
 
 @media (max-width: 768px) {
   .section-card {
-    padding: 18px;
+    padding: 16px;
     border-radius: 12px;
   }
 
   .stat-card {
-    padding: 14px 10px;
+    padding: 12px 8px;
   }
 
   .stat-card .stat-number {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .stat-card .stat-label {
+    font-size: 11px;
+  }
+
+  .req-item {
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
+  .empty-state {
+    padding: 40px 16px;
+  }
+
+  .share-card {
+    padding: 20px 16px;
+  }
+
+  .bottom-bar {
+    padding: 10px 16px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+}
+
+/* 移动端布局：汉堡菜单 + 单列表单 */
+@media (max-width: 640px) {
+  .ant-layout-header {
+    padding: 0 12px !important;
+    height: 52px !important;
+    line-height: 52px !important;
+  }
+
+  .ant-layout-header .ant-menu-horizontal {
+    display: none !important;
+  }
+
+  .ant-layout-content {
+    padding: 16px 12px !important;
+  }
+
+  .mobile-menu-toggle {
+    display: block !important;
   }
 }
 
